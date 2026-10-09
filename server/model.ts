@@ -1,7 +1,7 @@
 import {MENU,weekOf,dateAt,todayISO} from '../lib/flat-data.ts';
 export type Role='resident'|'cook';
 export type Member={id:string;name:string;role:Role;diet:string;likes:string;avoid:string;allergies:string};
-export type FlatState={flat:{id:string;name:string;number:string;owner:string};members:Member[];meals:any[];requests:any[];duties:any[];supplies:any[];laundrySchedules:any[];laundryOverrides:Record<string,any>};
+export type FlatState={flat:{id:string;name:string;number:string;owner:string};members:Member[];formerMembers?:Member[];meals:any[];requests:any[];duties:any[];supplies:any[];laundrySchedules:any[];laundryOverrides:Record<string,any>};
 export class AppError extends Error{status:number;constructor(message:string,status=400){super(message);this.status=status}}
 export function text(v:unknown,max=120,empty=false):string{if(empty&&(v===undefined||v===''))return '';if(typeof v!=='string'||!v.trim()||v.trim().length>max)throw new AppError('Please check the required fields.');return v.trim()}
 export function validDate(v:unknown){const s=text(v,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(s)||!Number.isFinite(Date.parse(s))||new Date(s+'T12:00:00Z').toISOString().slice(0,10)!==s)throw new AppError('Choose a valid date.');return s}
@@ -88,5 +88,43 @@ export function present(s:FlatState,uid:string,week:string,codes:{code:string;co
  const residents=s.members.filter(m=>m.role==='resident');
  const laundry=resident?laundryEvents(s,week,dateAt(week,6)):[];
  const upcoming=resident?laundryEvents(s,now,dateAt(now,90)).filter(x=>!x.done):[];
- return {flat:{...s.flat,code:resident?codes.code:undefined,cookCode:s.flat.owner===uid?codes.cook_code:undefined},members:s.members,meals:s.meals.filter(m=>m.week===week),requests:s.requests.filter(r=>r.week===week).map(r=>{const {supporters,...rest}=r;return {...rest,name:s.members.find(m=>m.id===r.author)?.name,votes:supporters.filter((id:string)=>residents.some(m=>m.id===id)).length,mine:supporters.includes(uid)}}),duties:resident?s.duties.filter(d=>d.week===week):[],supplies:s.supplies,laundry,laundryNext:{wash:upcoming.filter(x=>x.kind==='wash').slice(0,2),dry:upcoming.filter(x=>x.kind==='dry').slice(0,2)},laundryConfig:resident?s.laundrySchedules.at(-1)||null:null};
+ return {flat:{...s.flat,code:resident?codes.code:undefined,cookCode:s.flat.owner===uid?codes.cook_code:undefined},members:s.members,formerMembers:s.formerMembers||[],meals:s.meals.filter(m=>m.week===week),requests:s.requests.filter(r=>r.week===week).map(r=>{const {supporters,...rest}=r;return {...rest,name:s.members.find(m=>m.id===r.author)?.name,votes:supporters.filter((id:string)=>residents.some(m=>m.id===id)).length,mine:supporters.includes(uid)}}),duties:resident?s.duties.filter(d=>d.week===week):[],supplies:s.supplies,laundry,laundryNext:{wash:upcoming.filter(x=>x.kind==='wash').slice(0,2),dry:upcoming.filter(x=>x.kind==='dry').slice(0,2)},laundryConfig:resident?s.laundrySchedules.at(-1)||null:null};
+}
+
+
+// Leaving removes access, keeps historical names and completions, and updates future chores.
+export function leaveFlat(original:FlatState,uid:string,now=todayISO()):FlatState{
+ const s=structuredClone(original);const member=s.members.find(m=>m.id===uid);
+ if(!member)throw new AppError('You do not belong to this flat.',403);
+ if(s.flat.owner===uid)throw new AppError('Transfer ownership to another resident before leaving. If you are the only resident, delete the flat instead.');
+ s.members=s.members.filter(m=>m.id!==uid);
+ s.formerMembers=[...(s.formerMembers||[]).filter(m=>m.id!==uid),member];
+ const residents=s.members.filter(m=>m.role==='resident');
+ s.requests=s.requests.map(r=>({...r,supporters:r.supporters.filter((id:string)=>id!==uid)}));
+ let turn=0;
+ s.duties=s.duties.map(d=>d.assignee===uid&&!d.done&&dateAt(d.week,d.day)>=now?{...d,assignee:residents[turn++%residents.length].id}:d);
+ // Cooks have no laundry assignments. Retain schedule IDs until a resident leaves.
+ if(member.role==='cook')return s;
+ const previous=structuredClone(s);
+ const rebuilt:any[]=[];
+ for(const schedule of s.laundrySchedules){
+  if(schedule.end&&schedule.end<now){rebuilt.push(schedule);continue;}
+  const next={...schedule,id:crypto.randomUUID(),start:schedule.start>now?schedule.start:now,washOrder:schedule.washOrder.filter((id:string)=>id!==uid),dryOrder:schedule.dryOrder.filter((id:string)=>id!==uid)};
+  if(!next.washOrder.length)next.washOrder=residents.map(m=>m.id);
+  if(!next.dryOrder.length)next.dryOrder=residents.map(m=>m.id);
+  if(schedule.start<now)rebuilt.push({...schedule,end:dateAt(now,-1)});
+  rebuilt.push(next);
+  // Copy explicit overrides, including completed future turns, onto replacement IDs.
+  for(const [id,override] of Object.entries(previous.laundryOverrides||{})){
+   const prefix=schedule.id+':';if(!id.startsWith(prefix))continue;
+   const [washDate,kind]=id.slice(prefix.length).split(':');if(washDate<next.start)continue;
+   const preserved={...override};if(preserved.assignee===uid&&!preserved.done)preserved.assignee=residents[0].id;
+   if(preserved.done&&!preserved.assignee){const date=kind==='dry'?dateAt(washDate,schedule.dryOffset):washDate;preserved.assignee=laundryEvents(previous,date,date).find(x=>x.id===id)?.assignee;}
+   s.laundryOverrides[next.id+':'+washDate+':'+kind]=preserved;
+  }
+ }
+ s.laundrySchedules=rebuilt;
+ // Drying from a wash before today remains on the old schedule; reassign only pending turns.
+ for(const event of laundryEvents(s,now,dateAt(now,2))){if(event.assignee===uid&&!event.done)s.laundryOverrides[event.id]={...(s.laundryOverrides[event.id]||{}),assignee:residents[0].id};}
+ return s;
 }
