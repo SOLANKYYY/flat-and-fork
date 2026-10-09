@@ -13,7 +13,8 @@ Shared meals, kitchen duties and laundry turns for a rented home. This Vercel ve
 - The laundry screen shows the upcoming person and the person after them. Residents can manually reassign one occurrence without changing future rotation. The assignee or owner marks completion.
 - New future rotations retain earlier turns. Add new residents to the next rotation when required.
 - Food, votes, duties, supplies and laundry data persist in Supabase. Updates use version checks to avoid overwriting simultaneous changes.
-- One account belongs to one flat. Flat creator is a resident with management privileges; cook is a separate role assigned by its invitation code.
+- One account can create or join multiple flats and switch with My flats. Flat creator is a resident with management privileges; cook is a separate role assigned by its invitation code in each flat.
+- Members can leave a flat; owners can transfer ownership or delete their flat with confirmation. See [MULTIPLE-FLATS.md](MULTIPLE-FLATS.md) for the existing-project migration.
 - No unrequested redesign: original CSS retained, new feature styles appended.
 
 ## Login
@@ -58,10 +59,11 @@ The production Next.js build and 12 model tests passed during preparation. Tests
 | `supabase/schema.sql` | Database tables and atomic storage functions |
 | `.env.example` | Required configuration names, without secrets |
 
-The database keeps each flat's small shared state in a versioned JSONB document and maintains a separate unique user-to-flat mapping. Database tables and functions are inaccessible to anonymous/authenticated browser database clients. The server-only secret key accesses storage after the Next.js API verifies identity and permissions. Transactional create/join and compare-and-swap updates keep changes consistent.
+The database keeps each flat's small shared state in a versioned JSONB document and maintains a separate unique user-and-flat membership mapping. Database tables and functions are inaccessible to anonymous/authenticated browser database clients. The server-only secret key accesses storage after the Next.js API verifies identity and permissions. Transactional create/join and compare-and-swap updates keep changes consistent.
 
 Dates use Asia/Kolkata. Meal times are suggested labels. Allergy notes are shared for the cook to review; the menu does not automatically validate ingredients. There is no email/SMS notification service for laundry; the app displays upcoming turns and refreshes shared data every 30 seconds.
 
 ## Photo
 
 Thali photo by [fuseviews on Unsplash](https://unsplash.com/photos/a-metal-tray-topped-with-different-types-of-food-bKmSUcAGrvI), under the Unsplash License.
+

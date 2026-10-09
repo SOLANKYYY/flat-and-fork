@@ -9,7 +9,7 @@ function dateLabel(date:string){return new Date(date+'T12:00:00Z').toLocaleDateS
 function Pick({value,onChange,options,label}:{value:string,onChange:(v:string)=>void,options:{value:string,label:string}[],label:string}){return <Select value={value} onValueChange={onChange}><SelectTrigger className="picker" aria-label={label}><SelectValue/></SelectTrigger><SelectContent>{options.map(x=><SelectItem key={x.value} value={x.value}>{x.label}</SelectItem>)}</SelectContent></Select>}
 export default function LaundryPanel({data,week,setWeek,action,busy,demo,error}:{data:any;week:string;setWeek:(s:string)=>void;action:(b:any)=>Promise<boolean>;busy:boolean;demo:boolean;error:string}){
  const residents=data.members.filter((m:any)=>m.role!=='cook');const owner=data.flat.owner===data.user.userId;const [modal,setModal]=useState('');const [f,setF]=useState<any>({});
- const name=(id:string)=>residents.find((m:any)=>m.id===id)?.name||'Resident';
+ const name=(id:string)=>residents.find((m:any)=>m.id===id)?.name||(data.formerMembers||[]).find((m:any)=>m.id===id)?.name||'Former flatmate';
  const start=()=>{if(demo){void action({action:'laundry_schedule'});return;}const c=data.laundryConfig;const order=residents.map((m:any)=>m.id);setF({start:c?dateAt(todayISO(),1):todayISO(),days:c?.days||[0,2,4],dryOffset:c?.dryOffset??1,washOrder:order,dryOrder:order});setModal('schedule')};
  function move(key:string,i:number,delta:number){const next=[...f[key]],j=i+delta;if(j<0||j>=next.length)return;[next[i],next[j]]=[next[j],next[i]];setF({...f,[key]:next})}
  return <>
@@ -25,3 +25,4 @@ export default function LaundryPanel({data,week,setWeek,action,busy,demo,error}:
  </form></DialogContent></Dialog>
  </>
 }
+

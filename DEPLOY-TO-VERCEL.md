@@ -2,6 +2,8 @@
 
 The app has been prepared and built locally. It has **not** been deployed to your Vercel account. You need a Supabase project and a Vercel project. No credentials are included in this download.
 
+Updating an existing deployment for multiple flats? Follow [MULTIPLE-FLATS.md](MULTIPLE-FLATS.md) and its migration instead of recreating your database.
+
 ## 1. Create the database
 
 1. Open [Supabase](https://supabase.com/dashboard) and create a project.
@@ -139,3 +141,4 @@ The source build and model tests passed locally. Live Supabase functions, Google
 ## Existing preview data
 
 The original `chatgpt.site` preview stays as it was. Its ChatGPT identities and D1 data are not silently copied into your Supabase project. This Vercel version starts with a new database and accounts. If you have already entered real data in the preview and want it migrated, export and map it separately before changing everyone over.
+
