@@ -17,6 +17,10 @@ Shared meals, kitchen duties and laundry turns for a rented home. This Vercel ve
 - Members can leave a flat; owners can transfer ownership or delete their flat with confirmation. See [MULTIPLE-FLATS.md](MULTIPLE-FLATS.md) for the existing-project migration.
 - No unrequested redesign: original CSS retained, new feature styles appended.
 
+## Mobile profiles and attendance
+
+See [MOBILE-PROFILES-HANDOVER.md](MOBILE-PROFILES-HANDOVER.md) for phone layout changes, optional contact profiles, Call buttons and the daily home/away duty handover. These fields use the existing JSONB storage; no additional SQL migration or Google login reset is required.
+
 ## Login
 
 Google OAuth and optional email OTP are implemented through Supabase. Enable the chosen provider before inviting roommates. ChatGPT sign-in from the original hosted preview is platform-specific and is not carried into this standalone Vercel app. The old preview and its database remain separate; existing preview accounts/data are not automatically migrated.
