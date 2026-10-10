@@ -48,6 +48,14 @@ try{
  r=await call(owner,undefined,'?flatId='+first.id);assert.equal(r.body.meals.length,0);
  r=await call(resident,{action:'join',name:'Resident',code:first.code});assert.equal(r.status,200);assert.equal(r.body.flat.id,first.id);
  r=await call(resident,{action:'join',name:'Resident',code:second.code});assert.equal(r.status,200);assert.equal(r.body.flat.id,second.id);
+ r=await call(resident,{action:'profile',flatId:second.id,name:'Mobile Resident',diet:'Vegetarian',phone:'+91 98765 43210',age:'23'});assert.equal(r.status,200);assert.equal(r.body.members.find(m=>m.id===resident).phone,'+919876543210');
+ const today=r.body.today;const todayDuty=r.body.duties.find(d=>new Date(new Date(d.week+'T12:00:00Z').getTime()+d.day*86400000).toISOString().slice(0,10)===today);
+ r=await call(owner,{action:'duty',flatId:second.id,id:todayDuty.id,assignee:resident,utensils:todayDuty.utensils});assert.equal(r.status,200);
+ r=await call(resident,{action:'attendance',flatId:second.id,date:today,away:true,transfers:[]});assert.equal(r.status,400);
+ r=await call(resident,undefined,'?flatId='+second.id);assert.equal(r.body.members.find(m=>m.id===resident).homeToday,true);const transfers=r.body.todayTasks.map(t=>({key:t.key,assignee:owner}));
+ r=await call(resident,{action:'attendance',flatId:second.id,date:today,away:true,transfers});assert.equal(r.status,200);assert.equal(r.body.members.find(m=>m.id===resident).homeToday,false);assert.equal(r.body.todayTasks.length,0);
+ r=await call(owner,{action:'duty',flatId:second.id,id:todayDuty.id,assignee:resident,utensils:todayDuty.utensils});assert.equal(r.status,400);
+ r=await call(resident,undefined,'?flatId='+first.id);assert.equal(r.body.members.find(m=>m.id===resident).homeToday,true);assert.equal(r.body.members.find(m=>m.id===resident).phone,undefined);
  r=await call(resident,{action:'delete',flatId:first.id,confirmName:'First'});assert.equal(r.status,403);
  r=await call(owner,{action:'leave',flatId:first.id});assert.equal(r.status,400);
  r=await call(owner,{action:'transfer_owner',flatId:first.id,target:resident});assert.equal(r.status,200);
@@ -56,5 +64,5 @@ try{
  r=await call(owner,{action:'delete',flatId:second.id,confirmName:'wrong'});assert.equal(r.status,400);
  r=await call(owner,{action:'delete',flatId:second.id,confirmName:'Second'});assert.equal(r.status,200);assert.equal(r.body.flat,null);assert.equal(r.body.flats.length,0);
  r=await call(resident);assert.equal(r.body.flats.length,1);assert.equal(r.body.flat.id,first.id);
- console.log('PASS: authenticated API create, join, switch, scoped mutations, foreign access rejection, ownership transfer, leave, typed deletion and remaining-flat selection.');
+ console.log('PASS: authenticated API create, join, switch, scoped mutations, foreign access rejection, ownership transfer, leave, typed deletion, remaining-flat selection, profile persistence and atomic attendance/handover.');
 }finally{app.kill();mock.closeAllConnections();await new Promise(resolve=>mock.close(resolve));await db.close();}
