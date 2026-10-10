@@ -26,3 +26,19 @@ The preceding mobile/profile/handover PR (#2) was confirmed merged and its produ
 - Actual browser interactions and phone visual/zoom checks remain to be performed on the Vercel preview. Component rendering checks do not verify those interactions.
 
 Before merging, check the welcome screen, sample entry/exit, existing Google sign-in, My day links, Manage flat navigation, member search, and phone portrait/landscape layout. Check Leave/Delete confirmation dialogs without submitting against a real flat. Use disposable test flats to test destructive actions.
+
+## Full signed-in workspace update (same PR #3)
+
+The follow-up extends the redesign across every signed-in section:
+
+- Desktop sidebar and phone navigation menu for Overview, Meal planner, Meal requests, Kitchen duties, Laundry and Flatmates. Manage flat and My profile remain directly accessible.
+- The overview keeps your personal tasks and Home/Away handover controls together.
+- Meal planner replaces the photo/table layout with a selected-day view, seven-day picker, three meal cards and a weekly board. Prepared states and existing meal request/preparation actions remain available.
+- Every schedule page has previous/next week controls and This week. Meal requests and kitchen duties no longer depend on changing the week in another page.
+- Kitchen shows weekly completion and All duties / Assigned to me / Pending / Completed filters, plus shared shopping items.
+- Laundry has the next washing/drying assignees, weekly completion, the same useful task filters, and existing turn editing and rotation setup.
+- Meal requests have Open / Applied / All filters and voting summaries.
+- Flatmates has home/away counts, name search, availability/role filters and contact/profile cards. Your card remains highlighted.
+- Shared card, toolbar, status and typography styles apply throughout, with stacked phone layouts and accessible navigation labels.
+
+Additional validation: all six workspace sections rendered successfully with sample resident data; cook navigation/checklist, empty request and member searches, and task/member/request filtering were checked. Production build, TypeScript and all 27 existing model tests passed. These are rendering/logic checks; they do not replace browser interaction or real-phone visual checks.
